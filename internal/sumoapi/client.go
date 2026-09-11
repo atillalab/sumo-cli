@@ -49,6 +49,27 @@ func New(httpClient *http.Client) *Client {
 	return &Client{HTTPClient: httpClient}
 }
 
+// NextBasho returns the first Grand Tournament whose start date is today or
+// later in the requested timezone.
+func (c *Client) NextBasho(ctx context.Context, now time.Time, loc *time.Location) (Basho, error) {
+	start := localMidnight(now, loc)
+	var lastErr error
+	for _, candidate := range candidateBashoDates(start) {
+		basho, err := c.getBasho(ctx, candidate)
+		if err != nil {
+			lastErr = err
+			continue
+		}
+		if !basho.StartDate.Before(start.UTC()) {
+			return basho, nil
+		}
+	}
+	if lastErr != nil {
+		return Basho{}, lastErr
+	}
+	return Basho{}, fmt.Errorf("no upcoming Grand Tournament found")
+}
+
 func (c *Client) Upcoming(ctx context.Context, now time.Time, days int, loc *time.Location) (Schedule, error) {
 	if days < 1 {
 		return Schedule{}, fmt.Errorf("days must be positive")

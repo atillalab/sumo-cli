@@ -50,6 +50,30 @@ func TestUpcomingFetchesMakuuchiDays(t *testing.T) {
 	}
 }
 
+func TestNextBashoSkipsAnOngoingTournament(t *testing.T) {
+	httpClient := &http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
+		var body string
+		switch r.URL.Path {
+		case "/api/basho/202609":
+			body = `{"date":"202609","startDate":"2026-09-13T00:00:00Z","endDate":"2026-09-27T00:00:00Z"}`
+		case "/api/basho/202611":
+			body = `{"date":"202611","startDate":"2026-11-08T00:00:00Z","endDate":"2026-11-22T00:00:00Z"}`
+		default:
+			return nil, &urlError{path: r.URL.Path}
+		}
+		return &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(strings.NewReader(body)), Header: make(http.Header)}, nil
+	})}
+
+	now := time.Date(2026, 9, 20, 12, 0, 0, 0, time.UTC)
+	basho, err := New(httpClient).NextBasho(context.Background(), now, time.FixedZone("JST", 9*60*60))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if basho.Date != "202611" {
+		t.Fatalf("got basho %q, want 202611", basho.Date)
+	}
+}
+
 type urlError struct{ path string }
 
 func (e *urlError) Error() string { return "unexpected path: " + e.path }

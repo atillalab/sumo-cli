@@ -31,6 +31,7 @@ Usage:
 
 Commands:
   matches    list upcoming bouts from the top division (Makuuchi)
+  basho next show the next Grand Tournament
 
 Options:
   --days N       number of calendar days to show (default 15)
@@ -80,10 +81,58 @@ func (c *CLI) Run(args []string) int {
 		return exitOK
 	case "matches":
 		return c.runMatches(args[1:])
+	case "basho":
+		return c.runBasho(args[1:])
 	default:
 		fmt.Fprintf(c.Err, "sumo-cli: unknown command %q\n\n%s", args[0], usage)
 		return exitUsage
 	}
+}
+
+func (c *CLI) runBasho(args []string) int {
+	if len(args) == 0 || args[0] != "next" {
+		fmt.Fprintf(c.Err, "sumo-cli: usage: sumo-cli basho next [--timezone TZ] [--json]\n")
+		return exitUsage
+	}
+	fs := flag.NewFlagSet("basho next", flag.ContinueOnError)
+	fs.SetOutput(c.Err)
+	timezone := fs.String("timezone", "Asia/Tokyo", "IANA timezone")
+	jsonOutput := fs.Bool("json", false, "machine-readable JSON")
+	if err := fs.Parse(args[1:]); err != nil {
+		return exitUsage
+	}
+	if fs.NArg() != 0 {
+		fmt.Fprintln(c.Err, "sumo-cli: basho next accepts no positional arguments")
+		return exitUsage
+	}
+	loc, err := time.LoadLocation(*timezone)
+	if err != nil {
+		fmt.Fprintf(c.Err, "sumo-cli: invalid timezone %q: %v\n", *timezone, err)
+		return exitUsage
+	}
+	basho, err := sumoapi.New(c.HTTPClient).NextBasho(context.Background(), c.Now(), loc)
+	if err != nil {
+		if *jsonOutput {
+			return writeJSONError(c.Out, err)
+		}
+		fmt.Fprintf(c.Err, "sumo-cli: %v\n", err)
+		return exitData
+	}
+	if *jsonOutput {
+		return writeJSON(c.Out, map[string]any{
+			"schemaVersion": 1,
+			"command":       "basho next",
+			"basho":         basho,
+			"timezone":      *timezone,
+			"generatedAt":   c.Now().UTC(),
+		})
+	}
+	fmt.Fprintf(c.Out, "%s Grand Tournament\n%s – %s\n", bashoName(basho.StartDate.In(loc)), basho.StartDate.In(loc).Format("2006-01-02"), basho.EndDate.In(loc).Format("2006-01-02"))
+	return exitOK
+}
+
+func bashoName(start time.Time) string {
+	return start.Format("January 2006")
 }
 
 func (c *CLI) runMatches(args []string) int {
