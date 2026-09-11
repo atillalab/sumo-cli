@@ -16,6 +16,22 @@ A small Go CLI that lists upcoming Makuuchi bouts and the next Grand Tournament 
 
 ## Install
 
+The easiest way is via Homebrew:
+
+```sh
+brew install atillalab/tap/sumo-cli
+```
+
+Quick start:
+
+```sh
+brew install atillalab/tap/sumo-cli
+sumo-cli --version
+sumo-cli matches --days 3
+```
+
+From source (requires Go 1.22+):
+
 ```sh
 # Run directly
 go run ./cmd/sumo-cli --help
