@@ -32,7 +32,7 @@ func TestUpcomingFetchesMakuuchiDays(t *testing.T) {
 	})}
 
 	now := time.Date(2026, 9, 11, 12, 0, 0, 0, time.UTC)
-	result, err := New(httpClient).Upcoming(context.Background(), now, 3, time.FixedZone("JST", 9*60*60))
+	result, err := New(httpClient).Upcoming(context.Background(), now, 4, time.FixedZone("JST", 9*60*60))
 	if err != nil {
 		t.Fatal(err)
 	}

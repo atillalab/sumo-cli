@@ -74,7 +74,8 @@ func (c *Client) Upcoming(ctx context.Context, now time.Time, days int, loc *tim
 			firstDay = 1
 		}
 	}
-	lastDay := int(end.Sub(localMidnight(basho.StartDate, loc))/24/time.Hour) + 1
+	// end is exclusive: --days 3 covers today, tomorrow and the day after.
+	lastDay := int(end.Sub(localMidnight(basho.StartDate, loc)) / (24 * time.Hour))
 	if lastDay > 15 {
 		lastDay = 15
 	}
